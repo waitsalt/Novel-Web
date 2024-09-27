@@ -1,26 +1,16 @@
-use core::panic;
-
-use settings::SETTINGS;
-
-mod database;
+mod app;
 mod logger;
-mod models;
-mod routes;
-mod settings;
-mod web;
+mod model;
+mod router;
+mod setting;
+
+use setting::SETTING;
 
 #[tokio::main]
 async fn main() {
-    let web = web::init().await;
-
-    let port = SETTINGS.server.port;
-    let listener = tokio::net::TcpListener::bind(format!("localhost:{port}"))
-        .await
-        .unwrap_or_else(|_| panic!("Failed to start listener"));
-
-    println!("Server run in http://localhost:{port}");
-
-    axum::serve(listener, web)
-        .await
-        .expect("Failed to start server\n");
+    let app = app::init().await;
+    let addr = format!("127.0.0.1:{}", SETTING.server.port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    tracing::debug!("server runing http://{addr}");
+    axum::serve(listener, app).await.unwrap();
 }

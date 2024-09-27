@@ -1,13 +1,12 @@
 {
-    "environment": "development",
     "server": {
         "port": 8080
     },
     "database": {
-        "uri": "postgresql://root:123456@localhost:5432/novel-web"
+        "url": "postgresql://root:123456@localhost:5432/novel-web"
     },
     "auth": {
-        "secret": "secret"
+        "secret": "123456"
     },
     "logger": {
         "level": "debug"
