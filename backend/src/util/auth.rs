@@ -4,59 +4,26 @@ use axum_extra::{
     TypedHeader,
 };
 use jsonwebtoken::{errors::Error, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use serde::{Deserialize, Serialize};
 
+use crate::model::user::{ClaimsUser, TokenUser};
 use crate::{model::user::User, setting::SETTING};
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TokenUser {
-    pub id: String,
-    pub name: String,
-    pub level: u8,
-    pub email: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Claims {
-    pub exp: usize,
-    pub user: TokenUser,
-}
-
-impl TokenUser {
-    pub fn new(user: User) -> Self {
-        Self {
-            id: user.id,
-            name: user.name,
-            level: user.level,
-            email: user.email,
-        }
-    }
-}
-
-impl Claims {
-    pub fn new(user: User) -> Self {
-        Self {
-            exp: (chrono::Local::now() + chrono::Duration::days(10)).timestamp() as usize,
-            user: TokenUser::new(user),
-        }
-    }
-}
-
+// create token
 pub fn create(user: User, secret: &str) -> Result<String, Error> {
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
-    let claims = Claims::new(user);
+    let claims = ClaimsUser::new(user);
 
     jsonwebtoken::encode(&Header::default(), &claims, &encoding_key)
 }
 
-pub fn decode(token: &str, secret: &str) -> Result<TokenData<Claims>, Error> {
+// decode token ,get TokenUser
+pub fn decode(token: &str, secret: &str) -> Result<TokenData<ClaimsUser>, Error> {
     let decoding_key = DecodingKey::from_secret(secret.as_ref());
-
     jsonwebtoken::decode(token, &decoding_key, &Validation::default())
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for TokenUser
+impl<S> FromRequestParts<S> for ClaimsUser
 where
     S: Send + Sync,
 {
@@ -72,6 +39,6 @@ where
         let token_data =
             decode(bearer.token(), secret).map_err(|_| crate::error::AuthError::AuthInvalid)?;
 
-        Ok(token_data.claims.user)
+        Ok(token_data.claims)
     }
 }

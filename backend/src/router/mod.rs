@@ -1,2 +1,2 @@
-mod book;
-mod user;
+pub mod book;
+pub mod user;
