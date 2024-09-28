@@ -1,9 +1,11 @@
+use crate::database;
 use crate::logger;
 use axum::routing::{get, Router};
 use tower_http::trace;
 
 pub async fn init() -> Router {
-    logger::init();
+    logger::init().await;
+    database::init().await;
 
     Router::new()
         .merge(Router::new().route("/", get(root)))

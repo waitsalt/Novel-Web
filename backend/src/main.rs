@@ -1,8 +1,10 @@
 mod app;
+mod database;
 mod logger;
 mod model;
 mod router;
 mod setting;
+mod util;
 
 use setting::SETTING;
 
