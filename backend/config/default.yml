@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+database:
+  url: "postgresql://postgres:123456@localhost:5432/novel-web"
+
+auth:
+  secret: "123456"
+
+logger:
+  level: "debug"

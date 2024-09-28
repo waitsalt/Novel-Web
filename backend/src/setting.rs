@@ -32,7 +32,7 @@ pub struct Setting {
     pub logger: Logger,
 }
 
-pub static SETTING: Lazy<Setting> = Lazy::new(|| Setting::init().expect("Fail to setup settig"));
+pub static SETTING: Lazy<Setting> = Lazy::new(|| Setting::init().expect("Fail to init setting"));
 
 impl Setting {
     pub fn init() -> Result<Self, ConfigError> {

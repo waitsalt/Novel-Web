@@ -1,5 +1,6 @@
 mod app;
 mod database;
+mod error;
 mod logger;
 mod model;
 mod router;
