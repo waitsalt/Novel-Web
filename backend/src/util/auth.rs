@@ -4,22 +4,26 @@ use axum_extra::{
     TypedHeader,
 };
 use jsonwebtoken::{errors::Error, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use once_cell::sync::Lazy;
 
-use crate::model::user::{ClaimsUser, TokenUser};
-use crate::{model::user::User, setting::SETTING};
+use crate::model::user::{ClaimsUser, PublicUser};
+use crate::setting::SETTING;
+
+static VALIDATION: Lazy<Validation> = Lazy::new(Validation::default);
+static HEADER: Lazy<Header> = Lazy::new(Header::default);
 
 // create token
-pub fn create(user: User, secret: &str) -> Result<String, Error> {
+pub fn create(public_user: PublicUser, secret: &str) -> Result<String, Error> {
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
-    let claims = ClaimsUser::new(user);
+    let claims = ClaimsUser::new(public_user);
 
-    jsonwebtoken::encode(&Header::default(), &claims, &encoding_key)
+    jsonwebtoken::encode(&HEADER, &claims, &encoding_key)
 }
 
-// decode token ,get TokenUser
+// decode token,get PublicUser
 pub fn decode(token: &str, secret: &str) -> Result<TokenData<ClaimsUser>, Error> {
     let decoding_key = DecodingKey::from_secret(secret.as_ref());
-    jsonwebtoken::decode(token, &decoding_key, &Validation::default())
+    jsonwebtoken::decode(token, &decoding_key, &VALIDATION)
 }
 
 #[async_trait]

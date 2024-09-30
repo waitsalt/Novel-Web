@@ -1,42 +1,38 @@
 use axum::{routing::post, Json, Router};
 
-use crate::error::Error;
-use crate::model::user::{ClaimsUser, User, VerifyUser};
+use crate::error::{self, Error};
+use crate::model::user::{ClaimsUser, CreateUser, PublicUser, VerifyUser};
 use crate::setting::SETTING;
 use crate::util::auth::create;
 
 pub async fn router() -> Router {
     Router::new()
-        .route("/user/create", post(create_user))
-        .route("/user/login", post(login_user))
+        .route("/user/signup", post(signup_user))
+        .route("/user/signin", post(signin_user))
         .route("/user/info", post(info_user))
-        .route("/user/test", post(test))
 }
 
-async fn create_user() {}
-
-async fn login_user(Json(verify_user): Json<VerifyUser>) -> Result<String, Error> {
-    if verify_user.name == "a" && verify_user.password == "1" {
-        let user = User {
-            id: "1".to_string(),
-            name: "a".to_string(),
-            level: 1,
-            email: "1@1.com".to_string(),
-            password: "1".to_string(),
-        };
-        let token = create(user, SETTING.auth.secret.as_str()).unwrap();
-        return Ok(token);
-    }
-    tracing::info!("{:?}", verify_user);
-    Err(Error::AuthError(crate::error::AuthError::AuthMiss))
+async fn signup_user(Json(create_user): Json<CreateUser>) -> Result<String, Error> {
+    todo!()
 }
 
-async fn info_user() {}
-
-async fn test(claims_user: Option<ClaimsUser>) {
-    if claims_user.is_none() {
-        tracing::info!("error");
-        return;
+async fn signin_user(Json(verify_user): Json<VerifyUser>) -> Result<String, Error> {
+    let Json(user) = verify_user
+        .query_user()
+        .await
+        .map_err(|_| Error::LoginError(error::LoginError::UserError))?;
+    if user.password != verify_user.password {
+        return Err(Error::LoginError(error::LoginError::PasswordError));
     }
-    tracing::info!("good");
+    let public_user = PublicUser::new(user);
+    let token = create(public_user, SETTING.auth.secret.as_str())
+        .map_err(|_| error::AuthError::AuthCreation)?;
+    Ok(token)
+}
+
+async fn info_user(claims_user: Option<ClaimsUser>) -> Result<Json<ClaimsUser>, Error> {
+    match claims_user {
+        Some(a) => Ok(Json(a)),
+        None => Err(Error::AuthError(error::AuthError::AuthMiss)),
+    }
 }
