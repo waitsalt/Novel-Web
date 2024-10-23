@@ -25,11 +25,17 @@ pub struct Logger {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Library {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Setting {
     pub server: Server,
     pub database: Database,
     pub auth: Auth,
     pub logger: Logger,
+    pub library: Library,
 }
 
 pub static SETTING: Lazy<Setting> = Lazy::new(|| Setting::init().expect("Fail to init setting"));

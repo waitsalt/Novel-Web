@@ -6,8 +6,11 @@ use axum_extra::{
 use jsonwebtoken::{errors::Error, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use once_cell::sync::Lazy;
 
-use crate::model::user::{ClaimsUser, PublicUser};
 use crate::setting::SETTING;
+use crate::{
+    error,
+    model::user::{ClaimsUser, PublicUser},
+};
 
 static VALIDATION: Lazy<Validation> = Lazy::new(Validation::default);
 static HEADER: Lazy<Header> = Lazy::new(Header::default);
@@ -15,7 +18,7 @@ static HEADER: Lazy<Header> = Lazy::new(Header::default);
 // create token
 pub fn create(public_user: PublicUser, secret: &str) -> Result<String, Error> {
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
-    let claims = ClaimsUser::new(public_user);
+    let claims = ClaimsUser::from(public_user);
 
     jsonwebtoken::encode(&HEADER, &claims, &encoding_key)
 }
@@ -37,7 +40,7 @@ where
         let TypedHeader(Authorization(bearer)) = parts
             .extract::<TypedHeader<Authorization<Bearer>>>()
             .await
-            .map_err(|_| crate::error::AuthError::AuthInvalid)?;
+            .map_err(|_| crate::error::AuthError::AuthMiss)?;
 
         let secret = SETTING.auth.secret.as_str();
         let token_data =
@@ -45,4 +48,13 @@ where
 
         Ok(token_data.claims)
     }
+}
+
+// 检查 token 的
+pub async fn check_claims_user(claims_user: &ClaimsUser) -> Result<(), error::Error> {
+    let local_time = chrono::Local::now().timestamp() as usize;
+    if local_time > claims_user.exp {
+        return Err(error::Error::AuthError(error::AuthError::AuthTimeout));
+    }
+    Ok(())
 }

@@ -1,6 +1,7 @@
 use axum::Json;
+use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
-use sqlx::prelude::FromRow;
+use sqlx::{postgres::PgRow, prelude::FromRow};
 
 use crate::database::POOL;
 
@@ -41,7 +42,7 @@ pub struct VerifyUser {
 }
 
 impl PublicUser {
-    pub fn new(user: User) -> Self {
+    pub fn from(user: User) -> Self {
         Self {
             id: user.id,
             name: user.name,
@@ -52,7 +53,7 @@ impl PublicUser {
 }
 
 impl ClaimsUser {
-    pub fn new(public_user: PublicUser) -> Self {
+    pub fn from(public_user: PublicUser) -> Self {
         Self {
             exp: (chrono::Local::now() + chrono::Duration::days(10)).timestamp() as usize,
             user: public_user,
@@ -63,7 +64,6 @@ impl ClaimsUser {
 impl VerifyUser {
     pub async fn query_user(&self) -> Result<Json<User>, Box<dyn std::error::Error>> {
         let pool = POOL.get().expect("error").clone();
-        println!("{}", self.name);
         let user = sqlx::query_as::<_, User>("select * from public.user where name = $1;")
             .bind(&self.name)
             .fetch_one(&pool)
@@ -73,13 +73,26 @@ impl VerifyUser {
 }
 
 impl CreateUser {
-    pub async fn query_user(&self) -> Result<Json<User>, Box<dyn std::error::Error>> {
+    pub async fn query_users(&self) -> Result<Vec<User>, Box<dyn std::error::Error>> {
         let pool = POOL.get().expect("error").clone();
-        println!("{}", self.name);
-        let user = sqlx::query_as::<_, User>("select * from public.user where name = $1;")
+        let users = sqlx::query_as::<_, User>("select * from public.user where name = $1;")
             .bind(&self.name)
-            .fetch_one(&pool)
+            .fetch_all(&pool)
             .await?;
-        Ok(Json(user))
+        Ok(users)
+    }
+
+    pub async fn create_user(&self) -> Result<Option<PgRow>, sqlx::Error> {
+        let pool = POOL.get().expect("error").clone();
+        let id = nanoid!();
+        let res =
+            sqlx::query("insert into public.user(id,name,email,password) values ($1,$2,$3,$4)")
+                .bind(&id)
+                .bind(&self.name)
+                .bind(&self.email)
+                .bind(&self.password)
+                .fetch_optional(&pool)
+                .await?;
+        Ok(res)
     }
 }
