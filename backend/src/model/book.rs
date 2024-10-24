@@ -18,6 +18,7 @@ pub struct BookInfo {
     pub author: String,
     pub desc: String,
     pub chapter: Vec<String>,
+    pub collect_chapter: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
